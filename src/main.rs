@@ -1,3 +1,153 @@
+use rand::Rng;
+use std::io;
+
+#[derive(Clone, Copy)]
+enum Tile {
+    Empty,
+    Player,
+    Enemy,
+    Treasure,
+    Trap,
+}
+
+struct Player {
+    x: usize,
+    y: usize,
+    health: i32,
+    score: i32,
+}
+
+struct Game {
+    map: [[Tile; 10]; 10],
+    player: Player,
+}
+
+impl Game {
+    fn new() -> Game {
+        let mut map = [[Tile::Empty; 10]; 10];
+        let mut rng = rand::thread_rng();
+
+        let player_x = rng.gen_range(0..10);
+        let player_y = rng.gen_range(0..10);
+        map[player_x][player_y] = Tile::Player;
+
+        for _ in 0..5 {
+            let (x, y) = Self::random_empty(&map, &mut rng);
+            map[x][y] = Tile::Enemy;
+        }
+
+        for _ in 0..3 {
+            let (x, y) = Self::random_empty(&map, &mut rng);
+            map[x][y] = Tile::Treasure
+        }
+
+        for _ in 0..3 {
+            let (x, y) = Self::random_empty(&map, &mut rng);
+            map[x][y] = Tile::Trap
+        }
+
+        Game {
+            map,
+            player: Player {
+                x: player_x,
+                y: player_y,
+                health: 100,
+                score: 0,
+            },
+        }
+    }
+
+    fn random_empty(map: &[[Tile; 10]; 10], rng: &mut impl Rng) -> (usize, usize) {
+        loop {
+            let x = rng.gen_range(0..10);
+            let y = rng.gen_range(0..10);
+            if matches!(map[x][y], Tile::Empty) {
+                return (x, y);
+            }
+        }
+    }
+
+    fn display(&self) {
+        for row in self.map.iter() {
+            for tile in row {
+                match tile {
+                    Tile::Player => print!("@ "),
+                    Tile::Empty => print!(". "),
+                    Tile::Enemy => print!("E "),
+                    Tile::Treasure => print!("$ "),
+                    Tile::Trap => print!("T "),
+                }
+            }
+            println!();
+        }
+
+        print!(
+            "Score: {} - Health {}\n",
+            self.player.score, self.player.health
+        )
+    }
+
+    fn move_player(&mut self, direction: char) -> bool {
+        let (new_x, new_y) = match direction {
+            'w' => (self.player.x - 1, self.player.y ),
+            's' => (self.player.x + 1, self.player.y),
+            'a' => (self.player.x , self.player.y- 1),
+            'd' => (self.player.x , self.player.y+ 1),
+            _ => return false,
+        };
+
+        if new_x >= 10 || new_y >= 10 {
+            return false;
+        }
+
+        match self.map[new_x][new_y] {
+            Tile::Empty => {}
+            Tile::Trap => {
+                self.player.health -= 20;
+                println!("Hit a trap!");
+                self.map[new_x][new_y] = Tile::Empty;
+            }
+            Tile::Enemy => {
+                self.player.health -= 10;
+                println!("Hit an Enemy!");
+                self.map[new_x][new_y] = Tile::Empty;
+            }
+            Tile::Treasure => {
+                self.player.score += 10;
+                println!("Found a treasure!");
+                self.map[new_x][new_y] = Tile::Empty;
+            }
+            _ => return false,
+        }
+        self.map[self.player.x][self.player.y] = Tile::Empty;
+        self.player.x = new_x;
+        self.player.y = new_y;
+        self.map[self.player.x][self.player.y] = Tile::Player;
+        true
+    }
+}
+
 fn main() {
-    println!("Hello, world!");
+    println!("Welcome to the dungeon!");
+    let mut game = Game::new();
+    println!("WASD to move, q to quit");
+    
+    loop {
+        game.display();
+        if game.player.health <= 0 {
+            println!("Game over!");
+            break;
+        }
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("failed to read line");
+        let direction = input.chars().next().unwrap();
+        if direction == 'q' {
+            println!("Great job! Thanks for playing. Final stats -> Score: {} - Health: {}", game.player.score, game.player.health);
+            break;
+        }
+        
+        if !game.move_player(direction) {
+            println!("Invalid move!");
+        }
+    }
 }

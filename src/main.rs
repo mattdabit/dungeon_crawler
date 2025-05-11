@@ -40,7 +40,6 @@ impl Game {
         for _ in 0..treasure_count {
             let (x, y) = Self::random_empty(&map, &mut rng);
             map[x][y] = Tile::Treasure
-
         }
 
         for _ in 0..3 {
@@ -92,10 +91,10 @@ impl Game {
 
     fn move_player(&mut self, direction: char) -> bool {
         let (new_x, new_y) = match direction {
-            'w' => (self.player.x - 1, self.player.y ),
+            'w' => (self.player.x - 1, self.player.y),
             's' => (self.player.x + 1, self.player.y),
-            'a' => (self.player.x , self.player.y- 1),
-            'd' => (self.player.x , self.player.y+ 1),
+            'a' => (self.player.x, self.player.y - 1),
+            'd' => (self.player.x, self.player.y + 1),
             _ => return false,
         };
 
@@ -143,17 +142,22 @@ fn main() {
             break;
         }
         let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("failed to read line");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("failed to read line");
         let direction = input.chars().next().unwrap();
         if direction == 'q' {
-            println!("Great job! Thanks for playing. Final stats -> Score: {} - Health: {}", game.player.score, game.player.health);
+            println!(
+                "Great job! Thanks for playing. Final stats -> Score: {} - Health: {}",
+                game.player.score, game.player.health
+            );
             break;
         }
 
         if !game.move_player(direction) {
             println!("Invalid move!");
         }
-        
+
         if game.treasure_count == 0 {
             println!("You obtained all the treasures! New level starting...");
             game = Game::new(game.player.score, game.player.health);

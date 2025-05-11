@@ -20,13 +20,14 @@ struct Player {
 struct Game {
     map: [[Tile; 10]; 10],
     player: Player,
+    treasure_count: i32,
 }
 
 impl Game {
-    fn new() -> Game {
+    fn new(score: i32, health: i32) -> Game {
         let mut map = [[Tile::Empty; 10]; 10];
         let mut rng = rand::thread_rng();
-
+        let treasure_count = 3;
         let player_x = rng.gen_range(0..10);
         let player_y = rng.gen_range(0..10);
         map[player_x][player_y] = Tile::Player;
@@ -36,9 +37,10 @@ impl Game {
             map[x][y] = Tile::Enemy;
         }
 
-        for _ in 0..3 {
+        for _ in 0..treasure_count {
             let (x, y) = Self::random_empty(&map, &mut rng);
             map[x][y] = Tile::Treasure
+
         }
 
         for _ in 0..3 {
@@ -48,11 +50,12 @@ impl Game {
 
         Game {
             map,
+            treasure_count,
             player: Player {
                 x: player_x,
                 y: player_y,
-                health: 100,
-                score: 0,
+                health,
+                score,
             },
         }
     }
@@ -73,9 +76,9 @@ impl Game {
                 match tile {
                     Tile::Player => print!("@ "),
                     Tile::Empty => print!(". "),
-                    Tile::Enemy => print!("E "),
+                    Tile::Enemy => print!(". "),
                     Tile::Treasure => print!("$ "),
-                    Tile::Trap => print!("T "),
+                    Tile::Trap => print!(". "),
                 }
             }
             println!();
@@ -116,6 +119,7 @@ impl Game {
                 self.player.score += 10;
                 println!("Found a treasure!");
                 self.map[new_x][new_y] = Tile::Empty;
+                self.treasure_count -= 1;
             }
             _ => return false,
         }
@@ -129,9 +133,9 @@ impl Game {
 
 fn main() {
     println!("Welcome to the dungeon!");
-    let mut game = Game::new();
+    let mut game = Game::new(0, 100);
     println!("WASD to move, q to quit");
-    
+
     loop {
         game.display();
         if game.player.health <= 0 {
@@ -145,9 +149,14 @@ fn main() {
             println!("Great job! Thanks for playing. Final stats -> Score: {} - Health: {}", game.player.score, game.player.health);
             break;
         }
-        
+
         if !game.move_player(direction) {
             println!("Invalid move!");
+        }
+        
+        if game.treasure_count == 0 {
+            println!("You obtained all the treasures! New level starting...");
+            game = Game::new(game.player.score, game.player.health);
         }
     }
 }

@@ -21,20 +21,24 @@ struct Game {
     map: [[Tile; 10]; 10],
     player: Player,
     treasure_count: i32,
+    enemies: Vec<(usize, usize)>,
 }
 
 impl Game {
     fn new(score: i32, health: i32) -> Game {
+        let number_of_enemies = 5;
+        let treasure_count = 3;
         let mut map = [[Tile::Empty; 10]; 10];
         let mut rng = rand::thread_rng();
-        let treasure_count = 3;
+        let mut enemies = Vec::with_capacity(number_of_enemies);
         let player_x = rng.gen_range(0..10);
         let player_y = rng.gen_range(0..10);
         map[player_x][player_y] = Tile::Player;
 
-        for _ in 0..5 {
+        for _ in 0..number_of_enemies {
             let (x, y) = Self::random_empty(&map, &mut rng);
             map[x][y] = Tile::Enemy;
+            enemies.push((x, y));
         }
 
         for _ in 0..treasure_count {
@@ -50,6 +54,7 @@ impl Game {
         Game {
             map,
             treasure_count,
+            enemies,
             player: Player {
                 x: player_x,
                 y: player_y,
@@ -75,7 +80,7 @@ impl Game {
                 match tile {
                     Tile::Player => print!("@ "),
                     Tile::Empty => print!(". "),
-                    Tile::Enemy => print!(". "),
+                    Tile::Enemy => print!("E "),
                     Tile::Treasure => print!("$ "),
                     Tile::Trap => print!(". "),
                 }
@@ -113,6 +118,16 @@ impl Game {
                 self.player.health -= 10;
                 println!("Hit an Enemy!");
                 self.map[new_x][new_y] = Tile::Empty;
+                let enemy_index = self
+                    .enemies
+                    .iter()
+                    .position(|coor| *coor == (new_x, new_y))
+                    .unwrap();
+                self.enemies.remove(enemy_index);
+
+                if self.enemies.is_empty() {
+                    println!("All enemies have been killed!")
+                }
             }
             Tile::Treasure => {
                 self.player.score += 10;

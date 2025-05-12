@@ -80,7 +80,7 @@ impl Game {
                 match tile {
                     Tile::Player => print!("@ "),
                     Tile::Empty => print!(". "),
-                    Tile::Enemy => print!("E "),
+                    Tile::Enemy => print!(". "),
                     Tile::Treasure => print!("$ "),
                     Tile::Trap => print!(". "),
                 }
@@ -124,10 +124,6 @@ impl Game {
                     .position(|coor| *coor == (new_x, new_y))
                     .unwrap();
                 self.enemies.remove(enemy_index);
-
-                if self.enemies.is_empty() {
-                    println!("All enemies have been killed!")
-                }
             }
             Tile::Treasure => {
                 self.player.score += 10;
@@ -142,6 +138,21 @@ impl Game {
         self.player.y = new_y;
         self.map[self.player.x][self.player.y] = Tile::Player;
         true
+    }
+
+    fn move_enemies(&mut self) {
+        let mut rng = rand::thread_rng();
+        let mut new_enemies = Vec::new();
+        for _ in 0..self.enemies.len() {
+            let (x, y) = Self::random_empty(&self.map, &mut rng);
+            let (old_x, old_y) = self.enemies.pop().unwrap();
+            self.map[old_x][old_y] = Tile::Empty;
+            self.map[x][y] = Tile::Enemy;
+
+            new_enemies.push((x, y));
+        }
+
+        self.enemies = new_enemies;
     }
 }
 
@@ -177,5 +188,11 @@ fn main() {
             println!("You obtained all the treasures! New level starting...");
             game = Game::new(game.player.score, game.player.health);
         }
+
+        if game.enemies.is_empty() {
+            println!("All enemies have been killed!")
+        }
+
+        game.move_enemies()
     }
 }
